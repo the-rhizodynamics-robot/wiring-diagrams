@@ -1,0 +1,11 @@
+Id	Description	Qty	Unit	Designators
+1	Cable, 2 wires	0	m	WCAM
+2	Cable, 3 wires	0	m	WPH, WPV, WX, WY
+3	Cable, 8 wires	0	m	WREL
+4	Connector, 6-ch relay board — shelf lights, 8 pins	1		RELAYS
+5	Connector, Arduino Mega 2560, 17 pins	1		MEGA
+6	Connector, Camera trigger input, 2 pins	1		CAM
+7	Connector, Photointerrupter — horizontal home, 3 pins	1		PIX_H
+8	Connector, Photointerrupter — vertical home, 3 pins	1		PIX_V
+9	Connector, Stepper driver — X / horizontal, 3 pins	1		XDRV
+10	Connector, Stepper driver — Y / vertical, 3 pins	1		YDRV

@@ -1,0 +1,3 @@
+# WireViz intermediates / redundant exports (regenerate with `wireviz wiring.yml`)
+*.gv
+*.html
