@@ -7,7 +7,7 @@
 # SCOPE: the Arduino control signals (from the firmware pin map) PLUS the stepper
 # power subsystem (24 V PSU -> DQ542MA drivers -> motors), documented from photos of
 # the rig. Still TODO: the 5 V logic source for the Mega/sensors/relay logic, the
-# relay coil supply, and the DQ542MA DIP-switch (microstep/current) settings.
+# relay coil supply, and the DQ542MA phase-current value (DIP SW1-3, amps TBD).
 
 connectors:
   MEGA:
@@ -23,26 +23,34 @@ connectors:
     type: Stepper driver — X / horizontal (Wantai DQ542MA)
     pinlabels: [PUL+, PUL-, DIR+, DIR-, ENBL+, ENBL-, DC+, DC-, A+, A-, B+, B-]
     notes: >-
-      18-50 VDC. Signal side common-anode: PUL+/DIR+/ENBL+ jumpered together to the
-      5 V wire; Mega pulls PUL-/DIR-/ENBL-. EN active-LOW; right = LOW, left = HIGH.
-      [confirm jumpering; DIP microstep/current TBD]
+      18-50 VDC. Common-cathode signal: Mega D5/D7/D6 drive PUL+/DIR+/ENBL+;
+      PUL-/DIR-/ENBL- jumpered to Mega GND. DIP SW1-8 = ON OFF ON OFF ON OFF OFF ON
+      = 16 microstep (3200 pulse/rev); SW4 OFF = half current at standstill;
+      phase current (SW1-3) TBD. EN active-LOW (firmware).
 
   YDRV:
     type: Stepper driver — Y / vertical (Wantai DQ542MA)
     pinlabels: [PUL+, PUL-, DIR+, DIR-, ENBL+, ENBL-, DC+, DC-, A+, A-, B+, B-]
     notes: >-
-      18-50 VDC. Common-anode as XDRV. EN active-LOW; up = LOW, down = HIGH.
-      [confirm jumpering; DIP microstep/current TBD]
+      18-50 VDC. Common-cathode signal: Mega D8/D10/D9 drive PUL+/DIR+/ENBL+;
+      PUL-/DIR-/ENBL- jumpered to Mega GND. DIP SW1-8 = ON OFF OFF OFF ON OFF OFF ON
+      = 16 microstep (3200 pulse/rev); SW4 OFF = half current at standstill;
+      phase current (SW1-3) TBD. EN active-LOW (firmware).
 
   MOTOR_X:
-    type: NEMA stepper — X / horizontal (4-wire bipolar)
+    type: NEMA 17 stepper — X / horizontal
     pinlabels: [A+, A-, B+, B-]
-    notes: drives the camera carriage. [model / rated current TBD; verify coil pairing]
+    notes: >-
+      StepperOnline NEMA 17, 2.0 A/phase, 59 Ncm (84 oz-in), 48 mm, 4-lead
+      (17HS19-2004S1). Coil A = A+ black / A- green; coil B = B+ red / B- blue.
+      Drives the camera carriage. (+/- order only affects direction.)
 
   MOTOR_Y:
-    type: NEMA stepper — Y / vertical (4-wire bipolar)
+    type: NEMA 17 stepper — Y / vertical
     pinlabels: [A+, A-, B+, B-]
-    notes: GT2 belt drive. [model / rated current TBD; verify coil pairing]
+    notes: >-
+      Same StepperOnline NEMA 17 2.0 A/phase as X (17HS19-2004S1). Coil A =
+      A+ black / A- green; coil B = B+ red / B- blue. GT2 belt drive.
 
   PIX_H:
     type: Photointerrupter — horizontal home
@@ -65,18 +73,18 @@ connectors:
     notes: active-LOW; IN1 = shelf 1 … IN6 = shelf 6. Coil supply (JD-VCC) external — see TODO.
 
 cables:
-  WSX:                       # X signals (common-anode): 5V to anode rail + 3 signals
-    colors: [RD, OG, YE, WH]
+  WSX:                       # X signals (common-cathode): 3 signals + GND return
+    colors: [GN, YE, OG, BK]
   WSY:
-    colors: [RD, OG, YE, WH]
+    colors: [GN, YE, OG, BK]
   WPX:                       # X driver DC bus from PSU
     colors: [RD, BK]
   WPY:
     colors: [RD, BK]
-  WMX:                       # X motor coils (colors approximate — verify pairing)
-    colors: [RD, BU, GN, YE]
+  WMX:                       # X motor coils (StepperOnline color code)
+    colors: [BK, GN, RD, BU]
   WMY:
-    colors: [RD, BU, GN, YE]
+    colors: [BK, GN, RD, BU]
   WPH:
     colors: [RD, BK, WH]
   WPV:
@@ -87,14 +95,14 @@ cables:
     colors: [BN, RD, OG, YE, GN, BU, WH, BK]
 
 connections:
-  -                                   # X stepper signals (common-anode)
-    - MEGA: [5V, D5, D7, D6]
+  -                                   # X stepper signals (common-cathode)
+    - MEGA: [D5, D7, D6, GND]
     - WSX: [1, 2, 3, 4]
-    - XDRV: [PUL+, PUL-, DIR-, ENBL-]
-  -                                   # Y stepper signals (common-anode)
-    - MEGA: [5V, D8, D10, D9]
+    - XDRV: [PUL+, DIR+, ENBL+, ENBL-]
+  -                                   # Y stepper signals (common-cathode)
+    - MEGA: [D8, D10, D9, GND]
     - WSY: [1, 2, 3, 4]
-    - YDRV: [PUL+, PUL-, DIR-, ENBL-]
+    - YDRV: [PUL+, DIR+, ENBL+, ENBL-]
   -                                   # X driver power (24 V bus)
     - PSU: [V+, V-]
     - WPX: [1, 2]
@@ -128,6 +136,7 @@ connections:
     - WREL: [1, 2, 3, 4, 5, 6, 7, 8]
     - RELAYS: [IN1, IN2, IN3, IN4, IN5, IN6, VCC, GND]
 
-# On the DQ542MA common-anode signal side, PUL+/DIR+/ENBL+ are jumpered to the single
-# 5 V wire (WSX/WSY pin 1); the Mega pins land on PUL-/DIR-/ENBL-. See the open-questions
-# list (wiki) for the remaining unknowns: DIP settings, motor specs, 5 V source.
+# DQ542MA signal side is common-cathode: the Mega's 5 V step/dir/enable outputs drive
+# the PUL+/DIR+/ENBL+ inputs, and PUL-/DIR-/ENBL- are jumpered to the Mega GND wire
+# (WSX/WSY pin 4). DIP: both axes 16 microstep (3200 pulse/rev); SW4 OFF = half current
+# at standstill; phase-current amps (SW1-3) still to be read off the label.
