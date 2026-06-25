@@ -6,8 +6,12 @@
 #
 # SCOPE: the Arduino control signals (from the firmware pin map) PLUS the stepper
 # power subsystem (24 V PSU -> DQ542MA drivers -> motors), documented from photos of
-# the rig. Still TODO: the 5 V logic source for the Mega/sensors/relay logic, the
-# relay coil supply, and the DQ542MA phase-current value (DIP SW1-3, amps TBD).
+# the rig. Still TODO: the 5 V logic source for the Mega/sensors/relay logic and the
+# relay coil supply.
+#
+# Verified against robot-control firmware (robot_device_serial.ino): pins D5/D7/D6 (X)
+# and D8/D10/D9 (Y) match; the common-cathode wiring realizes the firmware's active-LOW
+# enable (D6/D9 LOW -> ENA opto off -> driver enabled).
 
 connectors:
   MEGA:
@@ -24,18 +28,19 @@ connectors:
     pinlabels: [PUL+, PUL-, DIR+, DIR-, ENBL+, ENBL-, DC+, DC-, A+, A-, B+, B-]
     notes: >-
       18-50 VDC. Common-cathode signal: Mega D5/D7/D6 drive PUL+/DIR+/ENBL+;
-      PUL-/DIR-/ENBL- jumpered to Mega GND. DIP SW1-8 = ON OFF ON OFF ON OFF OFF ON
-      = 16 microstep (3200 pulse/rev); SW4 OFF = half current at standstill;
-      phase current (SW1-3) TBD. EN active-LOW (firmware).
+      PUL-/DIR-/ENBL- jumpered to Mega GND. DIP SW1-8 = ON OFF ON OFF ON OFF OFF ON:
+      128 microstep (25600 pulse/rev), 1.92 A peak / 1.36 A RMS, SW4 OFF = half
+      current at standstill. EN active-LOW (firmware).
 
   YDRV:
     type: Stepper driver — Y / vertical (Wantai DQ542MA)
     pinlabels: [PUL+, PUL-, DIR+, DIR-, ENBL+, ENBL-, DC+, DC-, A+, A-, B+, B-]
     notes: >-
       18-50 VDC. Common-cathode signal: Mega D8/D10/D9 drive PUL+/DIR+/ENBL+;
-      PUL-/DIR-/ENBL- jumpered to Mega GND. DIP SW1-8 = ON OFF OFF OFF ON OFF OFF ON
-      = 16 microstep (3200 pulse/rev); SW4 OFF = half current at standstill;
-      phase current (SW1-3) TBD. EN active-LOW (firmware).
+      PUL-/DIR-/ENBL- jumpered to Mega GND. DIP SW1-8 = ON OFF OFF OFF ON OFF OFF ON:
+      128 microstep (25600 pulse/rev), 3.76 A peak / 2.69 A RMS, SW4 OFF = half
+      current. Higher current because it drives TWO motors in parallel (~1.88 A
+      each). EN active-LOW (firmware).
 
   MOTOR_X:
     type: NEMA 17 stepper — X / horizontal
@@ -45,12 +50,19 @@ connectors:
       (17HS19-2004S1). Coil A = A+ black / A- green; coil B = B+ red / B- blue.
       Drives the camera carriage. (+/- order only affects direction.)
 
-  MOTOR_Y:
-    type: NEMA 17 stepper — Y / vertical
+  MOTOR_Y1:
+    type: NEMA 17 stepper — Y / vertical (1 of 2)
     pinlabels: [A+, A-, B+, B-]
     notes: >-
-      Same StepperOnline NEMA 17 2.0 A/phase as X (17HS19-2004S1). Coil A =
-      A+ black / A- green; coil B = B+ red / B- blue. GT2 belt drive.
+      StepperOnline NEMA 17 2.0 A/phase (17HS19-2004S1), GT2 belt. Coil A =
+      A+ black / A- green; coil B = B+ red / B- blue.
+
+  MOTOR_Y2:
+    type: NEMA 17 stepper — Y / vertical (2 of 2)
+    pinlabels: [A+, A-, B+, B-]
+    notes: >-
+      Second vertical motor, wired in PARALLEL with Y1 on the YDRV outputs (both
+      step together; that's why YDRV current is set ~2x). Same NEMA 17 / colors.
 
   PIX_H:
     type: Photointerrupter — horizontal home
@@ -83,7 +95,9 @@ cables:
     colors: [RD, BK]
   WMX:                       # X motor coils (StepperOnline color code)
     colors: [BK, GN, RD, BU]
-  WMY:
+  WMY1:                      # Y motor 1 coils
+    colors: [BK, GN, RD, BU]
+  WMY2:                      # Y motor 2 coils (parallel)
     colors: [BK, GN, RD, BU]
   WPH:
     colors: [RD, BK, WH]
@@ -115,10 +129,14 @@ connections:
     - XDRV: [A+, A-, B+, B-]
     - WMX: [1, 2, 3, 4]
     - MOTOR_X: [A+, A-, B+, B-]
-  -                                   # Y motor coils
+  -                                   # Y motor 1 coils
     - YDRV: [A+, A-, B+, B-]
-    - WMY: [1, 2, 3, 4]
-    - MOTOR_Y: [A+, A-, B+, B-]
+    - WMY1: [1, 2, 3, 4]
+    - MOTOR_Y1: [A+, A-, B+, B-]
+  -                                   # Y motor 2 coils (parallel with motor 1)
+    - YDRV: [A+, A-, B+, B-]
+    - WMY2: [1, 2, 3, 4]
+    - MOTOR_Y2: [A+, A-, B+, B-]
   -                                   # horizontal home photointerrupter
     - MEGA: [5V, GND, D3]
     - WPH: [1, 2, 3]
@@ -138,5 +156,6 @@ connections:
 
 # DQ542MA signal side is common-cathode: the Mega's 5 V step/dir/enable outputs drive
 # the PUL+/DIR+/ENBL+ inputs, and PUL-/DIR-/ENBL- are jumpered to the Mega GND wire
-# (WSX/WSY pin 4). DIP: both axes 16 microstep (3200 pulse/rev); SW4 OFF = half current
-# at standstill; phase-current amps (SW1-3) still to be read off the label.
+# (WSX/WSY pin 4). DIP: both axes 128 microstep (25600 pulse/rev), SW4 OFF = half
+# current at standstill; current X = 1.92 A peak (1.36 RMS), Y = 3.76 A peak (2.69 RMS,
+# split across the two parallel vertical motors).

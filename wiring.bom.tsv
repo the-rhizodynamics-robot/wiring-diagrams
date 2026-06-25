@@ -1,15 +1,16 @@
 Id	Description	Qty	Unit	Designators
 1	Cable, 2 wires	0	m	WCAM, WPX, WPY
 2	Cable, 3 wires	0	m	WPH, WPV
-3	Cable, 4 wires	0	m	WMX, WMY, WSX, WSY
+3	Cable, 4 wires	0	m	WMX, WMY1, WMY2, WSX, WSY
 4	Cable, 8 wires	0	m	WREL
 5	Connector, 6-ch relay board — shelf lights, 8 pins	1		RELAYS
 6	Connector, Arduino Mega 2560, 17 pins	1		MEGA
 7	Connector, Camera trigger input (FLIR), 2 pins	1		CAM
 8	Connector, Mean-Well-style SMPS S-360-24, 2 pins	1		PSU
 9	Connector, NEMA 17 stepper — X / horizontal, 4 pins	1		MOTOR_X
-10	Connector, NEMA 17 stepper — Y / vertical, 4 pins	1		MOTOR_Y
-11	Connector, Photointerrupter — horizontal home, 3 pins	1		PIX_H
-12	Connector, Photointerrupter — vertical home, 3 pins	1		PIX_V
-13	Connector, Stepper driver — X / horizontal (Wantai DQ542MA), 12 pins	1		XDRV
-14	Connector, Stepper driver — Y / vertical (Wantai DQ542MA), 12 pins	1		YDRV
+10	Connector, NEMA 17 stepper — Y / vertical (1 of 2), 4 pins	1		MOTOR_Y1
+11	Connector, NEMA 17 stepper — Y / vertical (2 of 2), 4 pins	1		MOTOR_Y2
+12	Connector, Photointerrupter — horizontal home, 3 pins	1		PIX_H
+13	Connector, Photointerrupter — vertical home, 3 pins	1		PIX_V
+14	Connector, Stepper driver — X / horizontal (Wantai DQ542MA), 12 pins	1		XDRV
+15	Connector, Stepper driver — Y / vertical (Wantai DQ542MA), 12 pins	1		YDRV
