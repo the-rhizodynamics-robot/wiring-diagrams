@@ -1,28 +1,48 @@
-# WireViz source for the example GROOT robot's control wiring.
+# WireViz source for the example GROOT robot's wiring.
 #
 # Render:  pip install wireviz   (also needs Graphviz `dot` on PATH)
 #          wireviz wiring.yml     ->  wiring.svg + wiring.png + wiring.bom.tsv
 # Commit the generated wiring.svg next to this file so it renders on GitHub.
 #
-# SCOPE: the Arduino control-signal wiring, taken straight from the firmware pin
-# map (robot-control). POWER distribution — motor PSU -> driver VMOT/GND, the 5 V
-# logic source, and the relay coil supply (JD-VCC) — is build-specific and is left
-# as TODO below; fill it in with the actual supply used on this rig.
+# SCOPE: the Arduino control signals (from the firmware pin map) PLUS the stepper
+# power subsystem (24 V PSU -> DQ542MA drivers -> motors), documented from photos of
+# the rig. Still TODO: the 5 V logic source for the Mega/sensors/relay logic, the
+# relay coil supply, and the DQ542MA DIP-switch (microstep/current) settings.
 
 connectors:
   MEGA:
     type: Arduino Mega 2560
     pinlabels: [D5, D7, D6, D8, D10, D9, D3, D2, D12, D23, D25, D27, D29, D31, D33, 5V, GND]
 
+  PSU:
+    type: Mean-Well-style SMPS S-360-24
+    pinlabels: [V+, V-]
+    notes: AC 110/220 V in; DC out 24 V / 15 A (360 W). Feeds both driver DC buses.
+
   XDRV:
-    type: Stepper driver — X / horizontal
-    pinlabels: [STEP, DIR, EN]
-    notes: EN active-LOW; right = LOW, left = HIGH
+    type: Stepper driver — X / horizontal (Wantai DQ542MA)
+    pinlabels: [PUL+, PUL-, DIR+, DIR-, ENBL+, ENBL-, DC+, DC-, A+, A-, B+, B-]
+    notes: >-
+      18-50 VDC. Signal side common-anode: PUL+/DIR+/ENBL+ jumpered together to the
+      5 V wire; Mega pulls PUL-/DIR-/ENBL-. EN active-LOW; right = LOW, left = HIGH.
+      [confirm jumpering; DIP microstep/current TBD]
 
   YDRV:
-    type: Stepper driver — Y / vertical
-    pinlabels: [STEP, DIR, EN]
-    notes: EN active-LOW; up = LOW, down = HIGH
+    type: Stepper driver — Y / vertical (Wantai DQ542MA)
+    pinlabels: [PUL+, PUL-, DIR+, DIR-, ENBL+, ENBL-, DC+, DC-, A+, A-, B+, B-]
+    notes: >-
+      18-50 VDC. Common-anode as XDRV. EN active-LOW; up = LOW, down = HIGH.
+      [confirm jumpering; DIP microstep/current TBD]
+
+  MOTOR_X:
+    type: NEMA stepper — X / horizontal (4-wire bipolar)
+    pinlabels: [A+, A-, B+, B-]
+    notes: drives the camera carriage. [model / rated current TBD; verify coil pairing]
+
+  MOTOR_Y:
+    type: NEMA stepper — Y / vertical (4-wire bipolar)
+    pinlabels: [A+, A-, B+, B-]
+    notes: GT2 belt drive. [model / rated current TBD; verify coil pairing]
 
   PIX_H:
     type: Photointerrupter — horizontal home
@@ -35,7 +55,7 @@ connectors:
     notes: INPUT_PULLUP; OUT reads LOW when the slot is blocked
 
   CAM:
-    type: Camera trigger input
+    type: Camera trigger input (FLIR)
     pinlabels: [TRIG, GND]
     notes: ~50 ms HIGH pulse fires capture (shorter is ignored)
 
@@ -45,10 +65,18 @@ connectors:
     notes: active-LOW; IN1 = shelf 1 … IN6 = shelf 6. Coil supply (JD-VCC) external — see TODO.
 
 cables:
-  WX:
-    colors: [GN, YE, OG]
-  WY:
-    colors: [GN, YE, OG]
+  WSX:                       # X signals (common-anode): 5V to anode rail + 3 signals
+    colors: [RD, OG, YE, WH]
+  WSY:
+    colors: [RD, OG, YE, WH]
+  WPX:                       # X driver DC bus from PSU
+    colors: [RD, BK]
+  WPY:
+    colors: [RD, BK]
+  WMX:                       # X motor coils (colors approximate — verify pairing)
+    colors: [RD, BU, GN, YE]
+  WMY:
+    colors: [RD, BU, GN, YE]
   WPH:
     colors: [RD, BK, WH]
   WPV:
@@ -59,14 +87,30 @@ cables:
     colors: [BN, RD, OG, YE, GN, BU, WH, BK]
 
 connections:
-  -                                   # X stepper control
-    - MEGA: [D5, D7, D6]
-    - WX: [1, 2, 3]
-    - XDRV: [STEP, DIR, EN]
-  -                                   # Y stepper control
-    - MEGA: [D8, D10, D9]
-    - WY: [1, 2, 3]
-    - YDRV: [STEP, DIR, EN]
+  -                                   # X stepper signals (common-anode)
+    - MEGA: [5V, D5, D7, D6]
+    - WSX: [1, 2, 3, 4]
+    - XDRV: [PUL+, PUL-, DIR-, ENBL-]
+  -                                   # Y stepper signals (common-anode)
+    - MEGA: [5V, D8, D10, D9]
+    - WSY: [1, 2, 3, 4]
+    - YDRV: [PUL+, PUL-, DIR-, ENBL-]
+  -                                   # X driver power (24 V bus)
+    - PSU: [V+, V-]
+    - WPX: [1, 2]
+    - XDRV: [DC+, DC-]
+  -                                   # Y driver power (24 V bus)
+    - PSU: [V+, V-]
+    - WPY: [1, 2]
+    - YDRV: [DC+, DC-]
+  -                                   # X motor coils
+    - XDRV: [A+, A-, B+, B-]
+    - WMX: [1, 2, 3, 4]
+    - MOTOR_X: [A+, A-, B+, B-]
+  -                                   # Y motor coils
+    - YDRV: [A+, A-, B+, B-]
+    - WMY: [1, 2, 3, 4]
+    - MOTOR_Y: [A+, A-, B+, B-]
   -                                   # horizontal home photointerrupter
     - MEGA: [5V, GND, D3]
     - WPH: [1, 2, 3]
@@ -84,8 +128,6 @@ connections:
     - WREL: [1, 2, 3, 4, 5, 6, 7, 8]
     - RELAYS: [IN1, IN2, IN3, IN4, IN5, IN6, VCC, GND]
 
-# TODO (power, build-specific — not in the firmware pin map):
-#   - Motor PSU (+V, GND) -> XDRV/YDRV VMOT, GND  (driver-dependent, e.g. A4988/DRV8825)
-#   - 5 V logic source for MEGA / sensors / relay logic side
-#   - Relay coil supply (JD-VCC) and its GND; remove the VCC-from-MEGA link above if the
-#     board's logic side is powered separately.
+# On the DQ542MA common-anode signal side, PUL+/DIR+/ENBL+ are jumpered to the single
+# 5 V wire (WSX/WSY pin 1); the Mega pins land on PUL-/DIR-/ENBL-. See the open-questions
+# list (wiki) for the remaining unknowns: DIP settings, motor specs, 5 V source.
