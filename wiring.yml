@@ -23,6 +23,29 @@ connectors:
     pinlabels: [V+, V-]
     notes: AC 110/220 V in; DC out 24 V / 15 A (360 W). Feeds both driver DC buses.
 
+  FUSE_X:
+    type: Fuse 5 A fast-blow (inline holder)
+    pinlabels: [in, out]
+    notes: >-
+      On the +24 V leg to the X driver, close to the PSU. Upsized fast-blow so the
+      driver's millisecond cap-inrush doesn't nuisance-trip; a hard short still pulls
+      15 A+ off the PSU and clears. Returns (V-) are unfused.
+
+  FUSE_Y:
+    type: Fuse 7.5 A fast-blow (inline holder)
+    pinlabels: [in, out]
+    notes: >-
+      On the +24 V leg to the Y driver. Larger than X because the Y driver runs two
+      motors in parallel (~2x current). Fast-blow upsized for inrush, as with X.
+
+  FUSE_LED:
+    type: Fuse — size to LED load, fast-blow (inline holder)
+    pinlabels: [in, out]
+    notes: >-
+      On the +24 V leg feeding the shelf-LED relay contacts. Amps = total LED watts /
+      24 V, next standard size up, kept below the relay's contact rating. LED load
+      wattage still TBD (see hardware-open-questions.md).
+
   XDRV:
     type: Stepper driver — X / horizontal (Wantai DQ542MA)
     pinlabels: [PUL+, PUL-, DIR+, DIR-, ENBL+, ENBL-, DC+, DC-, A+, A-, B+, B-]
@@ -81,18 +104,46 @@ connectors:
 
   RELAYS:
     type: 6-ch relay board — shelf lights
-    pinlabels: [IN1, IN2, IN3, IN4, IN5, IN6, VCC, GND]
-    notes: active-LOW; IN1 = shelf 1 … IN6 = shelf 6. Coil supply (JD-VCC) external — see TODO.
+    pinlabels: [IN1, IN2, IN3, IN4, IN5, IN6, VCC, GND, COM+, LEDout]
+    notes: >-
+      Logic side: active-LOW; IN1 = shelf 1 … IN6 = shelf 6; coil supply (JD-VCC)
+      external — see TODO. Contact side shown representatively: COM+ = fused +24 V into
+      the contact common, LEDout = one switched output to a shelf LED string. Real board
+      has per-channel COM/NO/NC; exact per-shelf LED contact wiring TBD.
+
+  LEDS:
+    type: 24 V shelf LEDs (switched)
+    pinlabels: [V+, V-]
+    notes: >-
+      24 V LED strings switched by the relay board off the main 24 V bus (operator
+      confirmed). Shown as one representative string; per-shelf count / wattage / wiring
+      TBD (see hardware-open-questions.md).
 
 cables:
   WSX:                       # X signals (common-cathode): 3 signals + GND return
     colors: [GN, YE, OG, BK]
   WSY:
     colors: [GN, YE, OG, BK]
-  WPX:                       # X driver DC bus from PSU
-    colors: [RD, BK]
-  WPY:
-    colors: [RD, BK]
+  WPXv:                      # X: PSU V+ -> FUSE_X
+    colors: [RD]
+  WPXf:                      # X: FUSE_X -> driver DC+
+    colors: [RD]
+  WPXn:                      # X: PSU V- -> driver DC- (unfused return)
+    colors: [BK]
+  WPYv:                      # Y: PSU V+ -> FUSE_Y
+    colors: [RD]
+  WPYf:                      # Y: FUSE_Y -> driver DC+
+    colors: [RD]
+  WPYn:                      # Y: PSU V- -> driver DC- (unfused return)
+    colors: [BK]
+  WLEDv:                     # LED: PSU V+ -> FUSE_LED
+    colors: [RD]
+  WLEDf:                     # LED: FUSE_LED -> relay COM+
+    colors: [RD]
+  WLEDo:                     # LED: relay LEDout -> LED string V+
+    colors: [RD]
+  WLEDn:                     # LED: LED string V- -> PSU V- (unfused return)
+    colors: [BK]
   WMX:                       # X motor coils (StepperOnline color code)
     colors: [BK, GN, RD, BU]
   WMY1:                      # Y motor 1 coils
@@ -117,14 +168,30 @@ connections:
     - MEGA: [D8, D10, D9, GND]
     - WSY: [1, 2, 3, 4]
     - YDRV: [PUL+, DIR+, ENBL+, ENBL-]
-  -                                   # X driver power (24 V bus)
-    - PSU: [V+, V-]
-    - WPX: [1, 2]
-    - XDRV: [DC+, DC-]
-  -                                   # Y driver power (24 V bus)
-    - PSU: [V+, V-]
-    - WPY: [1, 2]
-    - YDRV: [DC+, DC-]
+  -                                   # X driver +24 V through inline fuse
+    - PSU: [V+]
+    - WPXv: [1]
+    - FUSE_X: [in]
+  -
+    - FUSE_X: [out]
+    - WPXf: [1]
+    - XDRV: [DC+]
+  -                                   # X driver return (unfused)
+    - PSU: [V-]
+    - WPXn: [1]
+    - XDRV: [DC-]
+  -                                   # Y driver +24 V through inline fuse
+    - PSU: [V+]
+    - WPYv: [1]
+    - FUSE_Y: [in]
+  -
+    - FUSE_Y: [out]
+    - WPYf: [1]
+    - YDRV: [DC+]
+  -                                   # Y driver return (unfused)
+    - PSU: [V-]
+    - WPYn: [1]
+    - YDRV: [DC-]
   -                                   # X motor coils
     - XDRV: [A+, A-, B+, B-]
     - WMX: [1, 2, 3, 4]
@@ -149,10 +216,26 @@ connections:
     - MEGA: [D12, GND]
     - WCAM: [1, 2]
     - CAM: [TRIG, GND]
-  -                                   # shelf-light relays
+  -                                   # shelf-light relays (logic side)
     - MEGA: [D23, D25, D27, D29, D31, D33, 5V, GND]
     - WREL: [1, 2, 3, 4, 5, 6, 7, 8]
     - RELAYS: [IN1, IN2, IN3, IN4, IN5, IN6, VCC, GND]
+  -                                   # LED power: +24 V through inline fuse to relay contacts
+    - PSU: [V+]
+    - WLEDv: [1]
+    - FUSE_LED: [in]
+  -
+    - FUSE_LED: [out]
+    - WLEDf: [1]
+    - RELAYS: [COM+]
+  -                                   # relay switched output -> LED string (representative)
+    - RELAYS: [LEDout]
+    - WLEDo: [1]
+    - LEDS: [V+]
+  -                                   # LED return (unfused)
+    - LEDS: [V-]
+    - WLEDn: [1]
+    - PSU: [V-]
 
 # DQ542MA signal side is common-cathode: the Mega's 5 V step/dir/enable outputs drive
 # the PUL+/DIR+/ENBL+ inputs, and PUL-/DIR-/ENBL- are jumpered to the Mega GND wire

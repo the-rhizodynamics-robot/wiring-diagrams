@@ -43,15 +43,27 @@ this in sync with that repo). Stepper `enable` and the shelf-light relays are **
 
 Directions: right = LOW, left = HIGH, up = LOW, down = HIGH.
 
-## Power wiring — TODO (build-specific)
+## Power wiring
 
-`wiring.yml` covers the **Arduino control-signal** wiring from the firmware pin map. The
-**power distribution is not yet documented** and is build-specific — fill it in for this rig:
+`wiring.yml` now models the **stepper power subsystem** as built: an **S-360-24** 24 V / 15 A
+PSU feeds both **Wantai DQ542MA** drivers, which drive **StepperOnline NEMA 17** motors (X =
+one motor, Y = two in parallel). The 24 V LED shelf lights are switched by the relay board off
+the same bus.
 
-- Motor PSU (+V, GND) → stepper driver `VMOT`/`GND` (driver-dependent, e.g. A4988/DRV8825).
-- 5 V logic source for the Mega, sensors, and the relay board's logic side.
+**Fusing (per branch, on the +24 V leg, near the PSU):** nothing downstream of the PSU is
+internally fused, so each +24 V branch gets an **inline fast-blow** fuse — **X driver 5 A**,
+**Y driver 7.5 A** (two motors), and the **LED branch** sized to the LED load. Values are
+upsized so the drivers' cap-inrush doesn't nuisance-trip; a hard short still clears off the
+15 A PSU. Returns (V−) are unfused. The AC side is left to the building breaker + the PSU's
+onboard fuse. See the wiki's `hardware-open-questions.md` for the full rationale.
+
+Still **build-specific TODO**:
+
+- **5 V logic source** for the Mega, sensors, and the relay board's logic side.
 - Relay **coil supply (JD-VCC)** and its ground — if powered separately, drop the
   `VCC`-from-Mega link in `wiring.yml`.
+- **LED load wattage** (sets the LED-branch fuse) and the per-shelf contact wiring (the
+  diagram shows one representative switched string).
 
 ## Related repos
 
