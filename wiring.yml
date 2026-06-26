@@ -6,8 +6,9 @@
 #
 # SCOPE: the Arduino control signals (from the firmware pin map) PLUS the stepper
 # power subsystem (24 V PSU -> DQ542MA drivers -> motors), documented from photos of
-# the rig. Still TODO: the 5 V logic source for the Mega/sensors/relay logic and the
-# relay coil supply.
+# the rig. The 5 V logic (Mega + sensors + relay logic/coil) is powered from the host PC
+# over USB — a separate domain from the 24 V motor/LED bus, bridged only by the drivers'
+# input optocouplers. Still TODO: the camera trigger path and the photointerrupter part/pinout.
 #
 # Verified against robot-control firmware (robot_device_serial.ino): pins D5/D7/D6 (X)
 # and D8/D10/D9 (Y) match; the common-cathode wiring realizes the firmware's active-LOW
@@ -17,6 +18,10 @@ connectors:
   MEGA:
     type: Arduino Mega 2560
     pinlabels: [D5, D7, D6, D8, D10, D9, D3, D2, D12, D23, D25, D27, D29, D31, D33, 5V, GND]
+    notes: >-
+      Powered from the host PC over USB; its 5 V pin feeds the photointerrupters and the
+      relay board (logic + coil). The Mega never touches the 24 V bus — the logic and 24 V
+      power grounds are separate domains, bridged only by the drivers' input optocouplers.
 
   PSU:
     type: Mean-Well-style SMPS S-360-24
@@ -106,8 +111,9 @@ connectors:
     type: 6-ch relay board — shelf lights
     pinlabels: [IN1, IN2, IN3, IN4, IN5, IN6, VCC, GND, COM+, LEDout]
     notes: >-
-      Logic side: active-LOW; IN1 = shelf 1 … IN6 = shelf 6; coil supply (JD-VCC)
-      external — see TODO. Contact side: in THIS rig a SINGLE relay channel switches
+      Logic side: active-LOW; IN1 = shelf 1 … IN6 = shelf 6. VCC + coil supply (JD-VCC)
+      both off the Mega's USB-fed 5 V (VCC↔JD-VCC jumper in place). Contact side: in THIS
+      rig a SINGLE relay channel switches
       ALL the LEDs at once — every shelf's string is paralleled on a terminal block, so
       all lights go on/off together — even though the board has 6 channels and the
       firmware drives 6 relay pins (a build-specific simplification). COM+ = fused +24 V
