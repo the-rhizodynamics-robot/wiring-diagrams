@@ -1,10 +1,10 @@
 Id	Description	Qty	Unit	Designators
-1	Cable, 1 wires	0	m	WLEDf, WLEDn, WLEDo, WLEDv, WPXf, WPXn, WPXv, WPYf, WPYn, WPYv
+1	Cable, 1 wires	0	m	WLEDf, WLEDn, WLEDo, WLEDp, WLEDv, WPXf, WPXn, WPXv, WPYf, WPYn, WPYv
 2	Cable, 2 wires	0	m	WCAM
 3	Cable, 3 wires	0	m	WPH, WPV
 4	Cable, 4 wires	0	m	WMX, WMY1, WMY2, WSX, WSY
 5	Cable, 8 wires	0	m	WREL
-6	Connector, 24 V shelf LEDs (switched), 2 pins	1		LEDS
+6	Connector, 24 V shelf LEDs (all paralleled), 2 pins	1		LEDS
 7	Connector, 6-ch relay board — shelf lights, 10 pins	1		RELAYS
 8	Connector, Arduino Mega 2560, 17 pins	1		MEGA
 9	Connector, Camera trigger input (FLIR), 2 pins	1		CAM
@@ -19,3 +19,4 @@ Id	Description	Qty	Unit	Designators
 18	Connector, Photointerrupter — vertical home, 3 pins	1		PIX_V
 19	Connector, Stepper driver — X / horizontal (Wantai DQ542MA), 12 pins	1		XDRV
 20	Connector, Stepper driver — Y / vertical (Wantai DQ542MA), 12 pins	1		YDRV
+21	Connector, Terminal block — LED distribution, 2 pins	1		TB_LED

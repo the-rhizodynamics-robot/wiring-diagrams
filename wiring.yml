@@ -107,17 +107,26 @@ connectors:
     pinlabels: [IN1, IN2, IN3, IN4, IN5, IN6, VCC, GND, COM+, LEDout]
     notes: >-
       Logic side: active-LOW; IN1 = shelf 1 … IN6 = shelf 6; coil supply (JD-VCC)
-      external — see TODO. Contact side shown representatively: COM+ = fused +24 V into
-      the contact common, LEDout = one switched output to a shelf LED string. Real board
-      has per-channel COM/NO/NC; exact per-shelf LED contact wiring TBD.
+      external — see TODO. Contact side: in THIS rig a SINGLE relay channel switches
+      ALL the LEDs at once — every shelf's string is paralleled on a terminal block, so
+      all lights go on/off together — even though the board has 6 channels and the
+      firmware drives 6 relay pins (a build-specific simplification). COM+ = fused +24 V
+      into that channel's common; LEDout = its switched output to the LED terminal block.
+
+  TB_LED:
+    type: Terminal block — LED distribution
+    pinlabels: [in, out]
+    notes: >-
+      Every shelf's LED string lands here in PARALLEL off the one relay's switched +24 V,
+      so a single relay turns all the lights on/off together (this rig).
 
   LEDS:
-    type: 24 V shelf LEDs (switched)
+    type: 24 V shelf LEDs (all paralleled)
     pinlabels: [V+, V-]
     notes: >-
-      24 V LED strings switched by the relay board off the main 24 V bus (operator
-      confirmed). Shown as one representative string; per-shelf count / wattage / wiring
-      TBD (see hardware-open-questions.md).
+      All shelves' 24 V LED strings, paralleled on the terminal block and switched
+      together by the single relay channel. Total LED wattage TBD — it sets the
+      FUSE_LED rating (see hardware-open-questions.md).
 
 cables:
   WSX:                       # X signals (common-cathode): 3 signals + GND return
@@ -140,9 +149,11 @@ cables:
     colors: [RD]
   WLEDf:                     # LED: FUSE_LED -> relay COM+
     colors: [RD]
-  WLEDo:                     # LED: relay LEDout -> LED string V+
+  WLEDo:                     # LED: relay LEDout -> terminal block
     colors: [RD]
-  WLEDn:                     # LED: LED string V- -> PSU V- (unfused return)
+  WLEDp:                     # LED: terminal block -> paralleled LED strings
+    colors: [RD]
+  WLEDn:                     # LED: LED strings V- -> PSU V- (unfused return)
     colors: [BK]
   WMX:                       # X motor coils (StepperOnline color code)
     colors: [BK, GN, RD, BU]
@@ -228,9 +239,13 @@ connections:
     - FUSE_LED: [out]
     - WLEDf: [1]
     - RELAYS: [COM+]
-  -                                   # relay switched output -> LED string (representative)
+  -                                   # relay switched output -> LED distribution terminal block
     - RELAYS: [LEDout]
     - WLEDo: [1]
+    - TB_LED: [in]
+  -                                   # terminal block -> all shelf LED strings (paralleled)
+    - TB_LED: [out]
+    - WLEDp: [1]
     - LEDS: [V+]
   -                                   # LED return (unfused)
     - LEDS: [V-]
