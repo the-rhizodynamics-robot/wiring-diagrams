@@ -8,7 +8,9 @@
 # power subsystem (24 V PSU -> DQ542MA drivers -> motors), documented from photos of
 # the rig. The 5 V logic (Mega + sensors + relay logic/coil) is powered from the host PC
 # over USB — a separate domain from the 24 V motor/LED bus, bridged only by the drivers'
-# input optocouplers. Still TODO: the camera trigger path and the photointerrupter part/pinout.
+# input optocouplers. Camera trigger confirmed: D12 + Mega GND direct to the camera (shared
+# logic ground). Still TODO: the photointerrupter module part/pin-order and the capture-software
+# switch (Blackfly S = Spinnaker, not the legacy FlyCapture — see robot-control/file-sorting).
 #
 # Verified against robot-control firmware (robot_device_serial.ino): pins D5/D7/D6 (X)
 # and D8/D10/D9 (Y) match; the common-cathode wiring realizes the firmware's active-LOW
@@ -95,17 +97,24 @@ connectors:
   PIX_H:
     type: Photointerrupter — horizontal home
     pinlabels: [VCC, GND, OUT]
-    notes: INPUT_PULLUP; OUT reads LOW when the slot is blocked
+    notes: >-
+      3-wire to the Mega: VCC<-5V, GND<-GND, OUT->D3 (operator-confirmed). INPUT_PULLUP;
+      OUT reads LOW when the slot is blocked. Module part / connector pin-order TBD.
 
   PIX_V:
     type: Photointerrupter — vertical home
     pinlabels: [VCC, GND, OUT]
-    notes: INPUT_PULLUP; OUT reads LOW when the slot is blocked
+    notes: >-
+      Mirrors PIX_H on D2: VCC<-5V, GND<-GND, OUT->D2 (firmware). INPUT_PULLUP; OUT reads
+      LOW when the slot is blocked. Module part / connector pin-order TBD.
 
   CAM:
     type: Camera trigger input (FLIR)
     pinlabels: [TRIG, GND]
-    notes: ~50 ms HIGH pulse fires capture (shorter is ignored)
+    notes: >-
+      TRIG <- Mega D12, GND <- Mega GND — direct logic connection, no level-shift/opto on the
+      Arduino side, so the camera shares the logic ground (operator-confirmed working). Firmware
+      sends a ~50 ms HIGH pulse (shorter is ignored). Which Blackfly GPIO line D12 lands on: TBD.
 
   RELAYS:
     type: 6-ch relay board — shelf lights
